@@ -1,0 +1,307 @@
+// Cyber Security HUD Canvas and Background effects
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Matrix Code Rain (Login Page canvas)
+    const matrixCanvas = document.getElementById('matrix-canvas');
+    if (matrixCanvas) {
+        initMatrixRain(matrixCanvas);
+    }
+
+    // 2. Interactive Network Nodes Background (App Container pages)
+    const cyberCanvas = document.getElementById('cyber-canvas');
+    if (cyberCanvas) {
+        initNetworkBackground(cyberCanvas);
+    }
+
+    // 3. Threat HUD Radar Sweep (Dashboard)
+    const radarCanvas = document.getElementById('radar-canvas');
+    if (radarCanvas) {
+        initRadarHUD(radarCanvas);
+    }
+});
+
+// Matrix rain rain parameters
+function initMatrixRain(canvas) {
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const chars = '0123456789ABCDEF@#$%&+*<>?'.split('');
+    const fontSize = 14;
+    let columns = canvas.width / fontSize;
+    let drops = [];
+    
+    function reinitDrops() {
+        columns = canvas.width / fontSize;
+        drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -100;
+        }
+    }
+    reinitDrops();
+    
+    // Recalculate columns on window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(reinitDrops, 250);
+    });
+
+    function draw() {
+        ctx.fillStyle = 'rgba(2, 6, 19, 0.08)'; // Keep trailing drops dark
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#00e5ff'; // Cyan matrix code color
+        ctx.font = fontSize + 'px monospace';
+        
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            const x = i * fontSize;
+            const y = drops[i] * fontSize;
+            
+            // Randomly flash bright green/blue
+            if (Math.random() > 0.98) {
+                ctx.fillStyle = '#ffffff';
+            } else if (Math.random() > 0.90) {
+                ctx.fillStyle = '#bd00ff'; // Purple glitch
+            } else {
+                ctx.fillStyle = '#00e5ff';
+            }
+            
+            ctx.fillText(text, x, y);
+            
+            if (y > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    
+    setInterval(draw, 33);
+}
+
+// Interactive Network Nodes animation
+function initNetworkBackground(canvas) {
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const nodes = [];
+    const maxNodes = 60;
+    const maxDistance = 120;
+    
+    class Node {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.radius = Math.random() * 2 + 1;
+        }
+        
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = document.body.classList.contains('light-mode') ? '#0052ff' : '#00e5ff';
+            ctx.fill();
+        }
+    }
+    
+    for (let i = 0; i < maxNodes; i++) {
+        nodes.push(new Node());
+    }
+    
+    // Add mouse node
+    const mouse = { x: null, y: null };
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+    
+    window.addEventListener('mouseout', () => {
+        mouse.x = null;
+        mouse.y = null;
+    });
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw and update nodes
+        nodes.forEach(node => {
+            node.update();
+            node.draw();
+        });
+        
+        // Connect nodes
+        const isLightMode = document.body.classList.contains('light-mode');
+        const strokeColor = isLightMode ? 'rgba(0, 82, 255,' : 'rgba(0, 229, 255,';
+        
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                if (dist < maxDistance) {
+                    const alpha = (1 - dist / maxDistance) * 0.15;
+                    ctx.beginPath();
+                    ctx.moveTo(nodes[i].x, nodes[i].y);
+                    ctx.lineTo(nodes[j].x, nodes[j].y);
+                    ctx.strokeStyle = strokeColor + alpha + ')';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+            
+            // Connect to mouse
+            if (mouse.x !== null && mouse.y !== null) {
+                const distToMouse = Math.hypot(nodes[i].x - mouse.x, nodes[i].y - mouse.y);
+                if (distToMouse < maxDistance * 1.5) {
+                    const alpha = (1 - distToMouse / (maxDistance * 1.5)) * 0.35;
+                    ctx.beginPath();
+                    ctx.moveTo(nodes[i].x, nodes[i].y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.strokeStyle = isLightMode ? `rgba(157, 0, 255, ${alpha})` : `rgba(189, 0, 255, ${alpha})`; // Purple connection glow
+                    ctx.lineWidth = 0.7;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        requestAnimationFrame(animate);
+    }
+    
+    animate();
+}
+
+// Sweep scope radar dashboard HUD
+function initRadarHUD(canvas) {
+    const ctx = canvas.getContext('2d');
+    const size = 260;
+    canvas.width = size;
+    canvas.height = size;
+    
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = size / 2 - 10;
+    let angle = 0;
+    
+    // Mock target threat nodes on radar
+    const targets = [
+        { r: radius * 0.4, theta: 1.2, size: 4, danger: false, alpha: 0 },
+        { r: radius * 0.75, theta: 3.8, size: 6, danger: true, alpha: 0 },
+        { r: radius * 0.6, theta: 5.2, size: 5, danger: false, alpha: 0 }
+    ];
+    
+    function drawRadar() {
+        ctx.clearRect(0, 0, size, size);
+        
+        // Draw grid circles
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.12)';
+        ctx.lineWidth = 1;
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.25, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.75, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.3)';
+        ctx.stroke();
+        
+        // Draw cross lines
+        ctx.beginPath();
+        ctx.moveTo(cx - radius, cy);
+        ctx.lineTo(cx + radius, cy);
+        ctx.moveTo(cx, cy - radius);
+        ctx.lineTo(cx, cy + radius);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.1)';
+        ctx.stroke();
+        
+        // Draw sweep line
+        const sweepX = cx + radius * Math.cos(angle);
+        const sweepY = cy + radius * Math.sin(angle);
+        
+        // Sweep gradient tail
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0, 'rgba(0, 229, 255, 0.02)');
+        grad.addColorStop(1, 'rgba(0, 229, 255, 0.1)');
+        
+        // Sweep arc sector
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, angle - 0.2, angle);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0, 229, 255, 0.15)';
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(sweepX, sweepY);
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Scan targets check
+        targets.forEach(t => {
+            // Find difference in angles
+            let diff = angle - t.theta;
+            while (diff < 0) diff += Math.PI * 2;
+            diff = diff % (Math.PI * 2);
+            
+            // If sweep line passed over target, light it up
+            if (diff < 0.1) {
+                t.alpha = 1.0;
+            } else {
+                t.alpha -= 0.005; // Fade target slowly
+            }
+            t.alpha = Math.max(t.alpha, 0.1);
+            
+            // Calculate pixel position
+            const tx = cx + t.r * Math.cos(t.theta);
+            const ty = cy + t.r * Math.sin(t.theta);
+            
+            ctx.beginPath();
+            ctx.arc(tx, ty, t.size, 0, Math.PI * 2);
+            ctx.fillStyle = t.danger ? `rgba(255, 0, 85, ${t.alpha})` : `rgba(0, 255, 136, ${t.alpha})`;
+            ctx.fill();
+            
+            if (t.alpha > 0.5) {
+                ctx.beginPath();
+                ctx.arc(tx, ty, t.size * 2.5, 0, Math.PI * 2);
+                ctx.strokeStyle = t.danger ? `rgba(255, 0, 85, ${t.alpha - 0.4})` : `rgba(0, 255, 136, ${t.alpha - 0.4})`;
+                ctx.stroke();
+            }
+        });
+        
+        angle += 0.01;
+        if (angle > Math.PI * 2) angle = 0;
+        
+        requestAnimationFrame(drawRadar);
+    }
+    
+    drawRadar();
+}

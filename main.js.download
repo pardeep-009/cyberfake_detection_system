@@ -1,0 +1,500 @@
+// Main Controller for Cyber Fake Detection platform
+
+// Sound Synthesizer using Web Audio API (no external file dependencies)
+const soundEffects = {
+    audioCtx: null,
+    
+    init() {
+        if (!this.audioCtx) {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+    
+    playClick() {
+        if (localStorage.getItem('sound_enabled') === 'false') return;
+        this.init();
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, this.audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, this.audioCtx.currentTime + 0.05);
+        
+        gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.05);
+        
+        osc.start();
+        osc.stop(this.audioCtx.currentTime + 0.05);
+    },
+    
+    playSuccess() {
+        if (localStorage.getItem('sound_enabled') === 'false') return;
+        this.init();
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, this.audioCtx.currentTime);
+        osc.frequency.setValueAtTime(900, this.audioCtx.currentTime + 0.08);
+        
+        gain.gain.setValueAtTime(0.12, this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.25);
+        
+        osc.start();
+        osc.stop(this.audioCtx.currentTime + 0.25);
+    },
+    
+    playAlarm() {
+        if (localStorage.getItem('sound_enabled') === 'false') return;
+        this.init();
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, this.audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(450, this.audioCtx.currentTime + 0.15);
+        osc.frequency.linearRampToValueAtTime(150, this.audioCtx.currentTime + 0.3);
+        
+        gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.35);
+        
+        osc.start();
+        osc.stop(this.audioCtx.currentTime + 0.35);
+    }
+};
+
+// Multilingual translations map
+const translations = {
+    en: {
+        'dashboard': 'Dashboard',
+        'fake-url': 'Fake URL Detector',
+        'phishing': 'Phishing Detector',
+        'email-analyzer': 'Fake Email Analyzer',
+        'qr-scanner': 'QR Code Scanner',
+        'password-checker': 'Password Strength Checker',
+        'file-scanner': 'Suspicious File Scanner',
+        'ip-checker': 'IP Reputation Checker',
+        'domain-lookup': 'Domain WHOIS Lookup',
+        'ssl-checker': 'SSL Cert Checker',
+        'tech-scanner': 'Website Tech Scanner',
+        'osint-intel': '🔐 Premium Cyber Recon',
+        'history': 'Scan Logs History',
+        'profile': 'User Profile',
+        'settings': 'SOC Configuration',
+        'about': 'About Platform',
+        'help': 'Help Center',
+        'threats-found': 'Threats Blocked',
+        'safe-reports': 'Safe Targets',
+        'scans-run': 'Total Investigations',
+        'risk-factor': 'Threat Factor Index',
+        'logins': 'Session Analyst'
+    },
+    es: {
+        'dashboard': 'Tablero SOC',
+        'fake-url': 'Detector URL Falsas',
+        'phishing': 'Detector de Phishing',
+        'email-analyzer': 'Analizador de Email',
+        'qr-scanner': 'Escáner Código QR',
+        'password-checker': 'Seguridad de Claves',
+        'file-scanner': 'Escáner de Archivos',
+        'ip-checker': 'Reputación de IP',
+        'domain-lookup': 'Búsqueda de Dominio',
+        'ssl-checker': 'Certificados SSL',
+        'tech-scanner': 'Tecnologías del Sitio',
+        'osint-intel': '🛡️ Detector de Info OSINT',
+        'history': 'Historial de Escaneos',
+        'profile': 'Perfil de Analista',
+        'settings': 'Configuración SOC',
+        'about': 'Acerca del Sistema',
+        'help': 'Centro de Ayuda',
+        'threats-found': 'Amenazas Bloqueadas',
+        'safe-reports': 'Objetos Seguros',
+        'scans-run': 'Investigaciones Totales',
+        'risk-factor': 'Índice de Amenaza',
+        'logins': 'Analista de Sesión'
+    },
+    de: {
+        'dashboard': 'SOC Dashboard',
+        'fake-url': 'Fake URL Erkennung',
+        'phishing': 'Phishing Detektor',
+        'email-analyzer': 'E-Mail Analysator',
+        'qr-scanner': 'QR-Code Scanner',
+        'password-checker': 'Passwort-Stärke',
+        'file-scanner': 'Datei Scanner',
+        'ip-checker': 'IP Reputation prüfen',
+        'domain-lookup': 'WHOIS Domain Abfrage',
+        'ssl-checker': 'SSL-Zertifikat prüfen',
+        'tech-scanner': 'Technologie Scanner',
+        'osint-intel': '🛡️ OSINT Info Detektor',
+        'history': 'Untersuchungsberichte',
+        'profile': 'Analysten Profil',
+        'settings': 'SOC Einstellungen',
+        'about': 'Über Plattform',
+        'help': 'Hilfezentrum',
+        'threats-found': 'Blockierte Gefahren',
+        'safe-reports': 'Sichere Berichte',
+        'scans-run': 'Scans Ausgeführt',
+        'risk-factor': 'Bedrohungsfaktor',
+        'logins': 'Sitzung Analyst'
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Sidebar Collapse Management
+    const sidebar = document.querySelector('.sidebar');
+    const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+    
+    if (sidebar && collapseBtn) {
+        // Load preference
+        if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+        
+        collapseBtn.addEventListener('click', () => {
+            soundEffects.playClick();
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        });
+    }
+
+    // 2. Sound Toggle Binding
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+        const soundEnabled = localStorage.getItem('sound_enabled') !== 'false';
+        updateSoundIcon(soundToggle, soundEnabled);
+        
+        soundToggle.addEventListener('click', () => {
+            const current = localStorage.getItem('sound_enabled') !== 'false';
+            const next = !current;
+            localStorage.setItem('sound_enabled', next);
+            updateSoundIcon(soundToggle, next);
+            if (next) {
+                soundEffects.playClick();
+            }
+        });
+    }
+
+    // 3. Language Selector
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) {
+        const currentLang = localStorage.getItem('app_lang') || 'en';
+        langSelect.value = currentLang;
+        translatePage(currentLang);
+        
+        langSelect.addEventListener('change', (e) => {
+            soundEffects.playClick();
+            const selected = e.target.value;
+            localStorage.setItem('app_lang', selected);
+            translatePage(selected);
+        });
+    }
+
+    // 4. Dark/Light Theme Selector
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            soundEffects.playClick();
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('app_theme', isLight ? 'light' : 'cyber');
+            themeToggle.querySelector('svg').innerHTML = isLight 
+                ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>' 
+                : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+        });
+        
+        // Load initial theme
+        if (localStorage.getItem('app_theme') === 'light') {
+            document.body.classList.add('light-mode');
+            themeToggle.querySelector('svg').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+        }
+    }
+
+    // 5. Floating Cyber Robot Assistant Widget
+    const cyberbotToggle = document.getElementById('cyberbot-toggle');
+    const cyberbotWindow = document.getElementById('cyberbot-window');
+    const cyberbotClose = document.getElementById('cyberbot-close');
+    const chatInput = document.getElementById('cyberbot-input-field');
+    const chatSend = document.getElementById('cyberbot-send-btn');
+    const chatMessages = document.getElementById('cyberbot-chat-messages');
+
+    if (cyberbotToggle && cyberbotWindow) {
+        cyberbotToggle.addEventListener('click', () => {
+            soundEffects.playClick();
+            cyberbotWindow.classList.toggle('active');
+        });
+        
+        if (cyberbotClose) {
+            cyberbotClose.addEventListener('click', () => {
+                soundEffects.playClick();
+                cyberbotWindow.classList.remove('active');
+            });
+        }
+
+        const handleBotSend = () => {
+            const text = chatInput.value.strip ? chatInput.value.strip() : chatInput.value.trim();
+            if (!text) return;
+            
+            soundEffects.playClick();
+            
+            // Add user bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble user';
+            userBubble.textContent = text;
+            chatMessages.appendChild(userBubble);
+            
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Analyze and reply
+            setTimeout(() => {
+                const botBubble = document.createElement('div');
+                botBubble.className = 'chat-bubble bot';
+                botBubble.textContent = getBotResponse(text);
+                chatMessages.appendChild(botBubble);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                soundEffects.playSuccess();
+            }, 600);
+        };
+
+        if (chatSend) {
+            chatSend.addEventListener('click', handleBotSend);
+        }
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleBotSend();
+            });
+        }
+    }
+
+    // 6. Premium Login Modal Handler
+    let premiumModal = document.getElementById('premium-login-modal');
+    
+    if (!premiumModal) {
+        premiumModal = document.createElement('div');
+        premiumModal.id = 'premium-login-modal';
+        premiumModal.className = 'premium-modal-overlay';
+        premiumModal.innerHTML = `
+            <div class="premium-modal-card glass-panel">
+                <button class="premium-modal-close" id="close-premium-modal">&times;</button>
+                <div class="premium-modal-header">
+                    <div class="lock-pulse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h2>OSINT Recon Suite</h2>
+                    <p>Decrypt premium security module session keys</p>
+                </div>
+                
+                <form id="premium-login-form">
+                    <div class="form-group">
+                        <label class="form-label" for="premium-username">Analyst Username</label>
+                        <input class="form-input" type="text" id="premium-username" required placeholder="Enter premium operator username..." autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="premium-password">Decryption Key (Password)</label>
+                        <input class="form-input" type="password" id="premium-password" required placeholder="Enter premium authorization key..." autocomplete="current-password">
+                    </div>
+                    
+                    <button class="cyber-btn" type="submit" style="width: 100%; margin-top: 10px;">
+                        Verify Credentials
+                    </button>
+                    
+                    <div id="premium-feedback" class="premium-feedback-msg" style="display: none; margin-top: 15px; padding: 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; text-align: center; border: 1px solid transparent;"></div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(premiumModal);
+    }
+    
+    const closePremiumBtn = document.getElementById('close-premium-modal');
+    const premiumForm = document.getElementById('premium-login-form');
+    
+    if (premiumModal) {
+        document.querySelectorAll('.premium-trigger').forEach(trigger => {
+            trigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                soundEffects.playClick();
+                premiumModal.classList.add('active');
+                
+                const feedback = document.getElementById('premium-feedback');
+                if (feedback) {
+                    feedback.style.display = 'none';
+                }
+                const card = premiumModal.querySelector('.premium-modal-card');
+                if (card) {
+                    card.classList.remove('shake');
+                }
+                const userIn = document.getElementById('premium-username');
+                const passIn = document.getElementById('premium-password');
+                if (userIn) userIn.value = '';
+                if (passIn) passIn.value = '';
+            });
+        });
+        
+        if (closePremiumBtn) {
+            closePremiumBtn.addEventListener('click', () => {
+                soundEffects.playClick();
+                premiumModal.classList.remove('active');
+            });
+        }
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === premiumModal) {
+                soundEffects.playClick();
+                premiumModal.classList.remove('active');
+            }
+        });
+        
+        if (premiumForm) {
+            premiumForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                soundEffects.playClick();
+                
+                const userVal = document.getElementById('premium-username').value;
+                const passVal = document.getElementById('premium-password').value;
+                const feedback = document.getElementById('premium-feedback');
+                const card = premiumModal.querySelector('.premium-modal-card');
+                
+                if (feedback) {
+                    feedback.style.display = 'block';
+                    feedback.style.borderColor = 'var(--neon-blue)';
+                    feedback.style.color = 'var(--neon-blue)';
+                    feedback.style.backgroundColor = 'rgba(0, 229, 255, 0.05)';
+                    feedback.textContent = 'Decrypting premium session keys...';
+                }
+                
+                setTimeout(() => {
+                    if (userVal === 'pardeep' && passVal === 'pardeep') {
+                        if (feedback) {
+                            feedback.style.borderColor = 'var(--neon-green)';
+                            feedback.style.color = 'var(--neon-green)';
+                            feedback.style.backgroundColor = 'rgba(0, 255, 136, 0.05)';
+                            feedback.textContent = 'Decryption successful. Redirecting...';
+                        }
+                        soundEffects.playSuccess();
+                        
+                        setTimeout(() => {
+                            window.location.href = '/premium-suite';
+                        }, 1000);
+                    } else {
+                        if (card) {
+                            card.classList.remove('shake');
+                            void card.offsetWidth; // trigger reflow
+                            card.classList.add('shake');
+                        }
+                        if (feedback) {
+                            feedback.style.borderColor = 'var(--neon-red)';
+                            feedback.style.color = 'var(--neon-red)';
+                            feedback.style.backgroundColor = 'rgba(255, 0, 85, 0.05)';
+                            feedback.textContent = 'Access Denied: Invalid Security Signature';
+                        }
+                        soundEffects.playAlarm();
+                    }
+                }, 800);
+            });
+        }
+    }
+
+    // 7. Global Logout Handler
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            soundEffects.playClick();
+            fetch('/api/auth/logout', { method: 'POST' })
+                .then(() => window.location.href = '/login');
+        });
+    }
+});
+
+function updateSoundIcon(el, enabled) {
+    el.querySelector('svg').innerHTML = enabled
+        ? '<path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>'
+        : '<path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+}
+
+function translatePage(lang) {
+    const dict = translations[lang];
+    if (!dict) return;
+    
+    // Find all tags with data-i18n attributes
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = dict[key];
+            } else {
+                el.textContent = dict[key];
+            }
+        }
+    });
+}
+
+function getBotResponse(input) {
+    const text = input.toLowerCase();
+    if (text.includes('hello') || text.includes('hi')) {
+        return "System greeting acknowledged, Analyst. Ask me to verify a URL, inspect suspicious files, or view recent SOC firewall threats.";
+    } else if (text.includes('url') || text.includes('link')) {
+        return "Navigating URLs? Use the 'Fake URL Detector' in the left menu to run heuristics on typosquatting and SSL checks.";
+    } else if (text.includes('phishing')) {
+        return "Phishing attempts bypass standard gateways. Analyze raw email SPF credentials or test webpage login layouts in our tools.";
+    } else if (text.includes('file') || text.includes('malware')) {
+        return "Upload suspects to the 'File Scanner'. I will calculate MD5/SHA256 checksums and perform structural header integrity checks.";
+    } else if (text.includes('clear')) {
+        return "You can clear the logs database entirely under the SOC Configuration (Settings) menu.";
+    } else {
+        return "Security query logged. I am monitoring active firewall indicators. Verify settings for VirusTotal keys if alerts persist.";
+    }
+}
+
+// Simulates console feed typing/printing logs in scanning widgets
+function runConsoleLog(consoleEl, logs, callback) {
+    if (!consoleEl) return;
+    consoleEl.innerHTML = '';
+    let i = 0;
+    
+    function logNext() {
+        if (i < logs.length) {
+            const line = document.createElement('div');
+            const data = logs[i];
+            line.className = 'console-line ' + (data.type || 'info');
+            
+            const time = document.createElement('span');
+            time.className = 'console-timestamp';
+            time.textContent = '[' + new Date().toLocaleTimeString() + ']';
+            
+            const msg = document.createElement('span');
+            msg.className = 'console-text';
+            msg.textContent = data.text;
+            
+            line.appendChild(time);
+            line.appendChild(msg);
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            
+            soundEffects.playClick();
+            i++;
+            setTimeout(logNext, Math.random() * 300 + 150);
+        } else {
+            if (callback) callback();
+        }
+    }
+    logNext();
+}
+
+// Global Exports
+window.soundEffects = soundEffects;
+window.runConsoleLog = runConsoleLog;
